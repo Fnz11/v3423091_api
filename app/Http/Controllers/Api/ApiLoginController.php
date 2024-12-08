@@ -16,18 +16,34 @@ class ApiLoginController extends Controller
             $user = Auth::user();
             if (!$user->is_active) {
                 Auth::logout();
-                return response()->json(['message' => 'Akun Anda tidak aktif.'], 403);
+                return response()->json([
+                    'message' => 'Akun Anda tidak aktif.',
+                    'status' => 403,
+                    'data' => null
+                ], 403);
             }
             $token = $user->createToken('API Token')->plainTextToken;
-            return response()->json(['token' => $token], 200);
+            return response()->json([
+                'message' => 'Login successful',
+                'status' => 200,
+                'data' => ['token' => $token]
+            ], 200);
         }
 
-        return response()->json(['message' => 'Unauthorized'], 401);
+        return response()->json([
+            'message' => 'Unauthorized',
+            'status' => 401,
+            'data' => null
+        ], 401);
     }
 
     public function logout()
     {
         Auth::logout();
-        return response()->json(['message' => 'Logged out successfully'], 200);
+        return response()->json([
+            'message' => 'Logged out successfully',
+            'status' => 200,
+            'data' => null
+        ], 200);
     }
 }
