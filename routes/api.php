@@ -25,9 +25,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('v1')->group(function () {
     Route::post('login', [ApiLoginController::class, 'login']);
     Route::post('register', [ApiRegisterController::class, 'register']);
-    // Route::middleware('auth:sanctum')->group(function () {
-    Route::post('logout', [ApiLoginController::class, 'logout']);
-    Route::apiResource('clothes', ApiClothesController::class);
-    Route::apiResource('categories', ApiCategoryController::class);
-    // });
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('logout', [ApiLoginController::class, 'logout']);
+        Route::apiResource('clothes', ApiClothesController::class);
+        Route::apiResource('categories', ApiCategoryController::class);
+    });
 });

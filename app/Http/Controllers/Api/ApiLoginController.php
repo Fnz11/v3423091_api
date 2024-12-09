@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User; // Add this import
 
 class ApiLoginController extends Controller
 {
@@ -13,7 +14,7 @@ class ApiLoginController extends Controller
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
-            $user = Auth::user();
+            $user = User::where('email', $request->email)->first(); // Find user by email
             if (!$user->is_active) {
                 Auth::logout();
                 return response()->json([
