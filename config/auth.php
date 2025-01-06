@@ -37,9 +37,13 @@ return [
 
     'guards' => [
         'web' => [
-            'driver' => 'session',
+            'driver' => 'jwt',
             'provider' => 'users',
         ],
+        // 'api' => [
+        //     'driver' => 'jwt',
+        //     'provider' => 'users',
+        // ],
     ],
 
     /*
@@ -89,7 +93,6 @@ return [
     | quickly generating a very large amount of password reset tokens.
     |
     */
-
     'passwords' => [
         'users' => [
             'provider' => 'users',

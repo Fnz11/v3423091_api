@@ -8,9 +8,15 @@ use App\Models\Clothes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ClothesController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('jwt.verify');
+    }
+
     /**
      * Display a listing of the resource for landing page.
      */
@@ -95,12 +101,19 @@ class ClothesController extends Controller
      */
     public function showLanding($id)
     {
-        $cloth = Clothes::findOrFail($id); // Fetch cloth by ID
-        $clothes = Clothes::latest()->paginate(10);
-        $baseRoute = 'landing.detail';
-        return view('landing.detail', compact('cloth', 'clothes', 'baseRoute'));
-    }
+        try {
+            $cloth = Clothes::findOrFail($id);
+            $clothes = Clothes::latest()->paginate(10);
+            $baseRoute = 'landing.detail';
 
+            // Get auth status from JWT
+            $isAuthenticated = auth()->check();
+
+            return view('landing.detail', compact('cloth', 'clothes', 'baseRoute', 'isAuthenticated'));
+        } catch (\Exception $e) {
+            return redirect()->route('products')->with('error', 'Product not found.');
+        }
+    }
 
     /**
      * Display the specified resource.
@@ -191,7 +204,7 @@ class ClothesController extends Controller
 
         $cloth->categories()->sync($validated['categories']);
 
-        return redirect()->route('admin.clothes.index')->with('success', 'Clothes updated successfully!');
+        return redirect()->route('admin.clothes.index')->with('success', 'Clothes added successfully.');
     }
 
     /**

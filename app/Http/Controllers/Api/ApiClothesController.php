@@ -11,6 +11,19 @@ use Illuminate\Support\Facades\Storage;
 
 class ApiClothesController extends Controller
 {
+    public function landingPage()
+    {
+        $clothes = Clothes::with('categories')
+            ->latest()
+            ->paginate(10);
+            
+        return response()->json([
+            'message' => 'Landing page clothes retrieved successfully',
+            'status' => 200,
+            'data' => $clothes
+        ], 200);
+    }
+
     public function index()
     {
         $clothes = Clothes::latest()->paginate(10);
@@ -23,19 +36,25 @@ class ApiClothesController extends Controller
 
     public function show($id)
     {
-        $cloth = Clothes::find($id);
-        if (!$cloth) {
+        try {
+            $cloth = Clothes::with('categories')->findOrFail($id);
+            $relatedClothes = Clothes::latest()->paginate(10);
+
+            return response()->json([
+                'message' => 'Clothes retrieved successfully',
+                'status' => 200,
+                'data' => [
+                    'cloth' => $cloth,
+                    'related_clothes' => $relatedClothes
+                ]
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Clothes not found',
                 'status' => 404,
                 'data' => null
             ], 404);
         }
-        return response()->json([
-            'message' => 'Clothes retrieved successfully',
-            'status' => 200,
-            'data' => $cloth
-        ], 200);
     }
 
     public function store(Request $request)
@@ -48,54 +67,56 @@ class ApiClothesController extends Controller
                 'description' => 'required|string',
                 'price' => 'required|numeric',
                 'stock' => 'required|integer',
-                'image' => 'nullable|string', // Image is now optional
+                'image' => 'required|string', // Base64 encoded image
                 'size' => 'required|string',
                 'limited_edition' => 'required|boolean',
                 'color' => 'required|array',
                 'categories' => 'required|array', // Expecting an array of category IDs
                 'categories.*' => 'exists:categories,id',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed', $e->errors());
+
+            $imageName = $this->handleImageUpload($validated['image']);
+            $colors = implode(', ', $validated['color']);
+
+            $cloth = Clothes::create([
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+                'price' => $validated['price'],
+                'stock' => $validated['stock'],
+                'image' => $imageName,
+                'size' => $validated['size'],
+                'limited_edition' => $validated['limited_edition'],
+                'color' => $colors,
+            ]);
+
+            $cloth->categories()->sync($validated['categories']);
+
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => 'Clothes added successfully',
+                'status' => 201,
+                'data' => $cloth->load('categories')
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating clothes: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to create clothes',
                 'status' => 422,
-                'data' => $e->errors()
+                'data' => $e->getMessage()
             ], 422);
         }
+    }
 
-        // Decode the base64 image if provided
-        $imageName = null;
-        if (!empty($validated['image'])) {
-            $imageData = base64_decode($validated['image']);
+    protected function handleImageUpload($base64Image)
+    {
+        try {
+            $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Image));
             $imageName = uniqid() . '.png';
             Storage::put('public/images/clothes/' . $imageName, $imageData);
-        } else {
-            $imageName = 'default.png'; // Set a default image name if not provided
+            return $imageName;
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to process image: ' . $e->getMessage());
         }
-
-        // Merge the selected colors into a string
-        $colors = implode(', ', $validated['color']);
-
-        $cloth = Clothes::create([
-            'name' => $validated['name'],
-            'description' => $validated['description'],
-            'price' => $validated['price'],
-            'stock' => $validated['stock'],
-            'image' => $imageName,
-            'size' => $validated['size'],
-            'limited_edition' => $validated['limited_edition'],
-            'color' => $colors,
-        ]);
-
-        // Attach categories to the cloth
-        $cloth->categories()->sync($validated['categories']);
-
-        return response()->json([
-            'message' => 'Clothes added successfully',
-            'status' => 201,
-            'data' => $cloth
-        ], 201);
     }
 
     public function update(Request $request, $id)

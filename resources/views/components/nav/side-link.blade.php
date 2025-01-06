@@ -4,13 +4,27 @@
     $isActive = Route::is($href);
 @endphp
 
-<li class="mb-2">
-    <a href="{{ route($href) }}"
-        class="{{ $isActive ? 'font-bold bg-white shadow-2xl shadow-slate-300' : 'font-medium hover:bg-white hover:shadow-2xl hover:scale-[1.03] shadow-slate-300' }} flex items-center gap-2 text-gray-700 hover:text-gray-900 p-2 rounded-xl transition-all duration-500 ease-out">
+<a href="{{ $href }}"
+    class="group block px-4 py-3 rounded-xl {{ $isActive ? 'bg-gradient-to-r from-purple-500/10 to-red-400/10 shadow-sm' : 'hover:bg-gray-50' }}">
+    <div class="flex items-center gap-3">
+        <div
+            class="{{ $isActive
+                ? 'bg-gradient-to-br from-purple-500 to-red-400 text-white shadow-lg shadow-purple-500/20'
+                : 'bg-white text-gray-400 border border-gray-100 group-hover:border-purple-200 group-hover:text-purple-500' }} 
+            p-2.5 rounded-lg">
+            {{ $icon }}
+        </div>
         <span
-            class="{{ $isActive ? '!bg-gradient-to-br gradient-primary text-white' : 'bg-white shadow-xl' }}  p-[0.75rem] aspect-square rounded-xl">
-            {{ $icon ?? '' }}
+            class="{{ $isActive
+                ? 'bg-gradient-to-r from-purple-500 to-red-400 bg-clip-text text-transparent font-semibold'
+                : 'text-gray-600 group-hover:text-gray-900' }}">
+            {{ $slot }}
         </span>
-        {{ $slot }}
-    </a>
-</li>
+        @if ($isActive)
+            <div class="ml-auto flex items-center gap-1">
+                <div class="w-1 h-1 rounded-full bg-purple-500"></div>
+                <div class="w-1 h-1 rounded-full bg-red-400"></div>
+            </div>
+        @endif
+    </div>
+</a>

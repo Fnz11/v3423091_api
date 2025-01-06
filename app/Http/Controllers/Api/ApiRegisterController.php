@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail;
 
 class ApiRegisterController extends Controller
 {
@@ -26,18 +27,30 @@ class ApiRegisterController extends Controller
             ], 422);
         }
 
+        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => bcrypt($request->password),
+            'otp' => $otp,
+            'otp_expiry' => now()->addMinutes(10)
         ]);
+
+        Mail::send('emails.otp', ['otp' => $otp], function ($message) use ($request) {
+            $message->to($request->email);
+            $message->subject('Email Verification OTP');
+        });
 
         $token = $user->createToken('API Token')->plainTextToken;
 
         return response()->json([
             'message' => 'Registration successful',
             'status' => 201,
-            'data' => ['token' => $token]
+            'data' => [
+                'token' => $token,
+                'verification_url' => route('verify.show', ['email' => $request->email])
+            ]
         ], 201);
     }
 }

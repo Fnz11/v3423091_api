@@ -11,6 +11,35 @@ window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
+// Add JWT token to all axios requests
+const token = localStorage.getItem('token');
+if (token) {
+    axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+}
+
+// Add interceptor to handle token refresh
+axios.interceptors.response.use(
+    response => response,
+    async error => {
+        if (error.response.status === 401) {
+            try {
+                const response = await axios.post('/auth/refresh');
+                localStorage.setItem('token', response.data.token);
+                axios.defaults.headers.common['Authorization'] = 'Bearer ' + response.data.token;
+                
+                // Retry the original request
+                const config = error.config;
+                config.headers['Authorization'] = 'Bearer ' + response.data.token;
+                return axios(config);
+            } catch (e) {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+                return Promise.reject(e);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 /**
  * Echo exposes an expressive API for subscribing to channels and listening
  * for events that are broadcast by Laravel. Echo and event broadcasting
